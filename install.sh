@@ -53,24 +53,45 @@ if command -v claude >/dev/null 2>&1; then
     echo "Claude Code is already installed: $(claude --version)"
 else
     echo "Claude Code not found. Installing..."
-    npm install -g @anthropic-ai/claude-code
+    
+    # Attempt to install globally with npm
+    npm install -g @anthropic-ai/claude-code || {
+        echo "⚠️  Global installation failed. Attempting to install locally in user directory..."
+        
+        # Create a local directory for npm global installs
+        mkdir -p ~/.npm-global
+        npm config set prefix '~/.npm-global'
+        
+        # Update PATH for local npm installs
+        echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+        echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.zshrc
+        
+        # Reload shell configuration
+        source ~/.bashrc || source ~/.zshrc
+        
+        # Retry installing the package
+        npm install -g @anthropic-ai/claude-code
+    }
 fi
 
 # Configure Claude Code to skip onboarding
 echo "Configuring Claude Code to skip onboarding..."
 node --eval '
+    const os = require("os");
+    const path = require("path");
+    const fs = require("fs");
     const homeDir = os.homedir(); 
     const filePath = path.join(homeDir, ".claude.json");
     if (fs.existsSync(filePath)) {
         const content = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-        fs.writeFileSync(filePath,JSON.stringify({ ...content, hasCompletedOnboarding: true }, 2), "utf-8");
+        fs.writeFileSync(filePath, JSON.stringify({ ...content, hasCompletedOnboarding: true }, null, 2), "utf-8");
     } else {
-        fs.writeFileSync(filePath,JSON.stringify({ hasCompletedOnboarding: true }), "utf-8");
+        fs.writeFileSync(filePath, JSON.stringify({ hasCompletedOnboarding: true }, null, 2), "utf-8");
     }'
 
 # Prompt user for API key
-echo "🔑 Please enter your Moonshot API key:"
-echo "   You can get your API key from: https://platform.moonshot.cn/console/api-keys"
+echo "🔑 Please enter your API key:"
+echo "   You can get your API key from: https://platform.o3.fan/console/api-keys"
 echo "   Note: The input is hidden for security. Please paste your API key directly."
 echo ""
 read -s api_key
@@ -109,7 +130,7 @@ else
     # Append new entries
     echo "" >> "$rc_file"
     echo "# Claude Code environment variables" >> "$rc_file"
-    echo "export ANTHROPIC_BASE_URL=https://api.moonshot.cn/anthropic/" >> "$rc_file"
+    echo "export ANTHROPIC_BASE_URL=https://api.o3.fan/anthropic/" >> "$rc_file"
     echo "export ANTHROPIC_API_KEY=$api_key" >> "$rc_file"
     echo "✅ Environment variables added to $rc_file"
 fi
@@ -122,6 +143,3 @@ echo "   source $rc_file"
 echo ""
 echo "🚀 Then you can start using Claude Code with:"
 echo "   claude"
-
-
-这个是kimi的一键安装脚本  我现在想改成我的网站的脚本 能实现吗   我的网站地址是https://api.o3.fan  其余的应该都一样

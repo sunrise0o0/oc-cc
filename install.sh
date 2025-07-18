@@ -117,6 +117,71 @@ if [ -z "$api_key" ]; then
     exit 1
 fi
 
+# Prompt user for model selection
+echo "🤖 Please select a model/请选择模型 (Default: claude-sonnet-4-20250514/默认: claude-sonnet-4-20250514):"
+echo "   1. claude-3-7-sonnet-20250219"
+echo "   2. claude-3-7-sonnet-20250219-thinking"
+echo "   3. claude-opus-4-20250514"
+echo "   4. claude-opus-4-20250514-thinking"
+echo "   5. claude-sonnet-4-20250514-thinking"
+echo "   6. Custom model name/自定义模型名称"
+echo "   Press Enter to use default/按回车使用默认值"
+echo ""
+read -p "Enter your choice (1-6) or press Enter for default/输入您的选择 (1-6) 或按回车使用默认值: " model_choice
+
+case "$model_choice" in
+    1)
+        claude_model="claude-3-7-sonnet-20250219"
+        ;;
+    2)
+        claude_model="claude-3-7-sonnet-20250219-thinking"
+        ;;
+    3)
+        claude_model="claude-opus-4-20250514"
+        ;;
+    4)
+        claude_model="claude-opus-4-20250514-thinking"
+        ;;
+    5)
+        claude_model="claude-sonnet-4-20250514-thinking"
+        ;;
+    6)
+        echo "Please enter custom model name/请输入自定义模型名称:"
+        read -p "Custom model name/自定义模型名称: " claude_model
+        if [ -z "$claude_model" ]; then
+            claude_model="claude-sonnet-4-20250514"
+        fi
+        ;;
+    *)
+        claude_model="claude-sonnet-4-20250514"
+        ;;
+esac
+
+echo "Selected model/已选择模型: $claude_model"
+
+# Prompt user for max output tokens
+echo ""
+echo "📊 Please set max output tokens/请设置最大输出令牌数 (Default: 64000/默认: 64000):"
+echo "   1. Use default (64000)/使用默认值 (64000)"
+echo "   2. Custom value/自定义值"
+echo ""
+read -p "Enter your choice (1-2) or press Enter for default/输入您的选择 (1-2) 或按回车使用默认值: " token_choice
+
+case "$token_choice" in
+    2)
+        echo "Please enter custom max output tokens/请输入自定义最大输出令牌数:"
+        read -p "Max output tokens/最大输出令牌数: " max_tokens
+        if [ -z "$max_tokens" ]; then
+            max_tokens="64000"
+        fi
+        ;;
+    *)
+        max_tokens="64000"
+        ;;
+esac
+
+echo "Max output tokens set to/最大输出令牌数设置为: $max_tokens"
+
 # Detect current shell and determine rc file
 current_shell=$(basename "$SHELL")
 case "$current_shell" in
@@ -139,14 +204,16 @@ echo ""
 echo "📝 Adding environment variables to $rc_file.../正在向$rc_file添加环境变量..."
 
 # Check if variables already exist to avoid duplicates
-if [ -f "$rc_file" ] && grep -q "ANTHROPIC_BASE_URL\|ANTHROPIC_API_KEY" "$rc_file"; then
+if [ -f "$rc_file" ] && grep -q "ANTHROPIC_BASE_URL\|ANTHROPIC_API_KEY\|CLAUDE_MODEL\|CLAUDE_CODE_MAX_OUTPUT_TOKENS" "$rc_file"; then
     echo "⚠️ Environment variables already exist in $rc_file. Skipping.../环境变量已存在于 $rc_file 中。跳过..."
 else
     # Append new entries
     echo "" >> "$rc_file"
     echo "# Claude Code environment variables" >> "$rc_file"
-    echo "export ANTHROPIC_BASE_URL=https://api.o3.fan/anthropic/" >> "$rc_file"
+    echo "export ANTHROPIC_BASE_URL=https://api.o3.fan" >> "$rc_file"
     echo "export ANTHROPIC_API_KEY=$api_key" >> "$rc_file"
+    echo "export CLAUDE_MODEL=$claude_model" >> "$rc_file"
+    echo "export CLAUDE_CODE_MAX_OUTPUT_TOKENS=$max_tokens" >> "$rc_file"
     echo "✅ Environment variables added to $rc_file/✅ 环境变量已添加到 $rc_file"
 fi
 
@@ -157,8 +224,12 @@ echo ""
 echo "🔄 Please restart your terminal or run:"
 echo "🔄 请重新启动您的终端或运行："
 echo "   source $rc_file"
-echo "   source $rc_file"
 echo ""
 echo "🚀 Then you can start using Claude Code with:"
 echo "🚀 然后您可以使用 Claude Code："
 echo "   claude"
+echo ""
+echo "📋 Configuration Summary/配置摘要:"
+echo "   API Base URL/API 基础地址: https://api.o3.fan"
+echo "   Model/模型: $claude_model"
+echo "   Max Output Tokens/最大输出令牌数: $max_tokens"

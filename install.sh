@@ -1,29 +1,34 @@
-#  Xcode Command Line Tools
-if [[ "$(uname -s)" == "Darwin" ]]; then
-    echo "🛠 检查 Xcode Command Line Tools 是否已安装..."
-    # 检查 command line tools 是否存在
-    if ! xcode-select -p &>/dev/null; then
-        echo "❗️未检测到 Xcode Command Line Tools，正在为您自动安装..."
-        echo "   (会弹出安装窗口，请按照提示操作，安装完成后按回车继续)"
-        xcode-select --install
-
-        # 等待用户安装完成
-        read -p "✅ 安装完成后请按回车继续... (Press Enter after the installation is finished)" 
-        # 再次检测
-        if ! xcode-select -p &>/dev/null; then
-            echo "❌ Command Line Tools 仍未安装，无法继续。请安装后重新运行本脚本。"
-            exit 1
-        fi
-        echo "✅ Command Line Tools 已安装，继续下一步..."
-    else
-        echo "✅ Xcode Command Line Tools 已安装"
-    fi
-fi
-
-
 #!/bin/bash
 
 set -e
+
+# 检测并自动安装 Xcode Command Line Tools（仅限 macOS）
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    echo "🛠 检查 Xcode Command Line Tools 是否已安装..."
+    echo "🛠 Checking if Xcode Command Line Tools is installed..."
+    # 检查 command line tools 是否存在
+    if ! xcode-select -p &>/dev/null; then
+        echo "❗️未检测到 Xcode Command Line Tools，正在为您自动安装..."
+        echo "❗️Xcode Command Line Tools not detected, installing automatically..."
+        echo "   (会弹出安装窗口，请按照提示操作，安装完成后按回车继续)"
+        echo "   (Installation window will pop up, please follow the instructions and press Enter to continue after installation)"
+        xcode-select --install
+
+        # 等待用户安装完成
+        read -p "✅ 安装完成后请按回车继续... (Press Enter after the installation is finished): " 
+        # 再次检测
+        if ! xcode-select -p &>/dev/null; then
+            echo "❌ Command Line Tools 仍未安装，无法继续。请安装后重新运行本脚本。"
+            echo "❌ Command Line Tools still not installed, cannot continue. Please install and run the script again."
+            exit 1
+        fi
+        echo "✅ Command Line Tools 已安装，继续下一步..."
+        echo "✅ Command Line Tools installed, continuing..."
+    else
+        echo "✅ Xcode Command Line Tools 已安装"
+        echo "✅ Xcode Command Line Tools is installed"
+    fi
+fi
 
 install_nodejs() {
     local platform=$(uname -s)
@@ -35,25 +40,94 @@ install_nodejs() {
             
             echo "📥 Downloading and installing nvm..."
             echo "📥 正在下载并安装 nvm..."
-            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+            
+            # 尝试多个镜像源下载 nvm
+            nvm_installed=false
+            nvm_urls=(
+                "https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh"
+                "https://gitee.com/mirrors/nvm/raw/v0.40.3/install.sh"
+                "https://cdn.jsdelivr.net/gh/nvm-sh/nvm@v0.40.3/install.sh"
+            )
+            
+            for url in "${nvm_urls[@]}"; do
+                echo "🔄 Trying to download from: $url"
+                echo "🔄 尝试从以下地址下载: $url"
+                
+                if curl -o- --connect-timeout 30 --max-time 120 "$url" | bash; then
+                    nvm_installed=true
+                    echo "✅ NVM installation successful from: $url"
+                    echo "✅ NVM 从以下地址安装成功: $url"
+                    break
+                else
+                    echo "❌ Failed to download from: $url, trying next mirror..."
+                    echo "❌ 从以下地址下载失败: $url，尝试下一个镜像..."
+                fi
+            done
+            
+            if [ "$nvm_installed" = false ]; then
+                echo "❌ All NVM download attempts failed. Please check your network connection."
+                echo "❌ 所有 NVM 下载尝试都失败了。请检查您的网络连接。"
+                echo "💡 You can try running the script again or install Node.js manually."
+                echo "💡 您可以尝试重新运行脚本或手动安装 Node.js。"
+                exit 1
+            fi
             
             echo "🔄 Loading nvm environment..."
             echo "🔄 正在加载 nvm 环境..."
+            
+            # 检查 nvm.sh 是否存在
+            if [ ! -f "$HOME/.nvm/nvm.sh" ]; then
+                echo "❌ NVM installation failed. File $HOME/.nvm/nvm.sh not found."
+                echo "❌ NVM 安装失败。未找到文件 $HOME/.nvm/nvm.sh。"
+                exit 1
+            fi
+            
+            # 加载 nvm
             \. "$HOME/.nvm/nvm.sh"
+            
+            # 验证 nvm 是否可用
+            if ! command -v nvm &> /dev/null; then
+                echo "❌ NVM command not available after installation."
+                echo "❌ 安装后 NVM 命令不可用。"
+                exit 1
+            fi
             
             echo "📦 Downloading and installing Node.js v22..."
             echo "📦 正在下载并安装 Node.js v22..."
-            nvm install 22
+            
+            # 尝试安装 Node.js，如果失败则重试
+            max_retries=3
+            retry_count=0
+            
+            while [ $retry_count -lt $max_retries ]; do
+                if nvm install 22; then
+                    echo "✅ Node.js v22 installation successful!"
+                    echo "✅ Node.js v22 安装成功！"
+                    break
+                else
+                    retry_count=$((retry_count + 1))
+                    echo "❌ Node.js installation failed. Retry $retry_count/$max_retries..."
+                    echo "❌ Node.js 安装失败。重试 $retry_count/$max_retries..."
+                    
+                    if [ $retry_count -eq $max_retries ]; then
+                        echo "❌ Node.js installation failed after $max_retries attempts."
+                        echo "❌ Node.js 安装在 $max_retries 次尝试后失败。"
+                        exit 1
+                    fi
+                    
+                    sleep 5
+                fi
+            done
             
             echo -n "✅ Node.js installation completed! Version: "
             echo -n "✅ Node.js 安装完成！版本: "
-            node -v # Should print "v22.17.0".
+            node -v
             echo -n "✅ Current nvm version: "
             echo -n "✅ 当前 nvm 版本: "
-            nvm current # Should print "v22.17.0".
+            nvm current
             echo -n "✅ npm version: "
             echo -n "✅ npm 版本: "
-            npm -v # Should print "10.9.2".
+            npm -v
             ;;
         *)
             echo "Unsupported platform: $platform"

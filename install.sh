@@ -82,14 +82,37 @@ install_nodejs() {
                 exit 1
             fi
             
-            # 加载 nvm
-            \. "$HOME/.nvm/nvm.sh"
+            # 设置 NVM 环境变量
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
             
             # 验证 nvm 是否可用
             if ! command -v nvm &> /dev/null; then
                 echo "❌ NVM command not available after installation."
                 echo "❌ 安装后 NVM 命令不可用。"
                 exit 1
+            fi
+            
+            # 检查并修复 npm 配置冲突
+            if [ -f "$HOME/.npmrc" ]; then
+                echo "🔧 Checking npm configuration for conflicts..."
+                echo "🔧 检查 npm 配置冲突..."
+                
+                # 备份原始 .npmrc
+                cp "$HOME/.npmrc" "$HOME/.npmrc.backup.$(date +%Y%m%d_%H%M%S)"
+                echo "📋 Backed up original .npmrc to .npmrc.backup.$(date +%Y%m%d_%H%M%S)"
+                echo "📋 已备份原始 .npmrc 到 .npmrc.backup.$(date +%Y%m%d_%H%M%S)"
+                
+                # 移除冲突的配置项
+                if grep -q "prefix\|globalconfig" "$HOME/.npmrc"; then
+                    echo "🔧 Removing conflicting npm configurations..."
+                    echo "🔧 移除冲突的 npm 配置..."
+                    
+                    # 创建临时文件，移除 prefix 和 globalconfig 行
+                    grep -v "^prefix\|^globalconfig" "$HOME/.npmrc" > "$HOME/.npmrc.tmp" || true
+                    mv "$HOME/.npmrc.tmp" "$HOME/.npmrc"
+                fi
             fi
             
             echo "📦 Downloading and installing Node.js v22..."
@@ -103,6 +126,11 @@ install_nodejs() {
                 if nvm install 22; then
                     echo "✅ Node.js v22 installation successful!"
                     echo "✅ Node.js v22 安装成功！"
+                    
+                    # 设置默认版本
+                    nvm use 22
+                    nvm alias default 22
+                    
                     break
                 else
                     retry_count=$((retry_count + 1))
@@ -112,7 +140,22 @@ install_nodejs() {
                     if [ $retry_count -eq $max_retries ]; then
                         echo "❌ Node.js installation failed after $max_retries attempts."
                         echo "❌ Node.js 安装在 $max_retries 次尝试后失败。"
-                        exit 1
+                        
+                        # 如果有已安装的 Node.js 版本，尝试使用
+                        echo "🔍 Checking for existing Node.js versions..."
+                        echo "🔍 检查现有的 Node.js 版本..."
+                        
+                        if nvm list | grep -q "v22"; then
+                            echo "✅ Found existing Node.js v22, using it..."
+                            echo "✅ 找到现有的 Node.js v22，使用它..."
+                            nvm use 22
+                            nvm alias default 22
+                            break
+                        else
+                            echo "❌ No suitable Node.js version found."
+                            echo "❌ 未找到合适的 Node.js 版本。"
+                            exit 1
+                        fi
                     fi
                     
                     sleep 5
@@ -178,7 +221,10 @@ else
         echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.zshrc
         
         # Reload shell configuration
-        source ~/.bashrc || source ~/.zshrc
+        source ~/.bashrc 2>/dev/null || source ~/.zshrc 2>/dev/null || true
+        
+        # Update current session PATH
+        export PATH=~/.npm-global/bin:$PATH
         
         # Retry installing the package
         npm install -g @anthropic-ai/claude-code

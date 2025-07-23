@@ -247,81 +247,99 @@ node --eval '
         fs.writeFileSync(filePath, JSON.stringify({ hasCompletedOnboarding: true }, null, 2), "utf-8");
     }'
 
-# Prompt user for API key
-echo "🔑 Please enter your API key/请输入您的API Key（秘钥）:"
-echo "   You can get your API key from/您可在这里获取您的秘钥: https://o3.fan/token"
-echo "   Note: The input is hidden for security. Please paste your API key directly/输入内容已隐藏以确保安全,请直接粘贴您的API密钥。"
-echo ""
-read -s api_key
-echo ""
+# Check if API key is provided via environment variable
+if [ -n "$API_KEY" ]; then
+    echo "✅ API key detected from environment variable/检测到环境变量中的API密钥"
+    api_key="$API_KEY"
+else
+    # Prompt user for API key
+    echo "🔑 Please enter your API key/请输入您的API Key（秘钥）:"
+    echo "   You can get your API key from/您可在这里获取您的秘钥: https://o3.fan/token"
+    echo "   Note: The input is hidden for security. Please paste your API key directly/输入内容已隐藏以确保安全,请直接粘贴您的API密钥。"
+    echo ""
+    read -s api_key
+    echo ""
+fi
 
 if [ -z "$api_key" ]; then
     echo "⚠️  API key cannot be empty. Please run the script again./API 密钥不能为空。请再次运行脚本。"
     exit 1
 fi
 
-# Prompt user for model selection
-echo "🤖 Please select a model/请选择模型 (Default: claude-sonnet-4-20250514/默认: claude-sonnet-4-20250514):"
-echo "   1. claude-3-7-sonnet-20250219"
-echo "   2. claude-3-7-sonnet-20250219-thinking"
-echo "   3. claude-opus-4-20250514"
-echo "   4. claude-opus-4-20250514-thinking"
-echo "   5. claude-sonnet-4-20250514-thinking"
-echo "   6. Custom model name/自定义模型名称"
-echo "   Press Enter to use default/按回车使用默认值"
-echo ""
-read -p "Enter your choice (1-6) or press Enter for default/输入您的选择 (1-6) 或按回车使用默认值: " model_choice
+# Check if MODEL is provided via environment variable
+if [ -n "$MODEL" ]; then
+    echo "✅ Model detected from environment variable: $MODEL/检测到环境变量中的模型: $MODEL"
+    claude_model="$MODEL"
+else
+    # Prompt user for model selection
+    echo "🤖 Please select a model/请选择模型 (Default: claude-sonnet-4-20250514/默认: claude-sonnet-4-20250514):"
+    echo "   1. claude-3-7-sonnet-20250219"
+    echo "   2. claude-3-7-sonnet-20250219-thinking"
+    echo "   3. claude-opus-4-20250514"
+    echo "   4. claude-opus-4-20250514-thinking"
+    echo "   5. claude-sonnet-4-20250514-thinking"
+    echo "   6. Custom model name/自定义模型名称"
+    echo "   Press Enter to use default/按回车使用默认值"
+    echo ""
+    read -p "Enter your choice (1-6) or press Enter for default/输入您的选择 (1-6) 或按回车使用默认值: " model_choice
 
-case "$model_choice" in
-    1)
-        claude_model="claude-3-7-sonnet-20250219"
-        ;;
-    2)
-        claude_model="claude-3-7-sonnet-20250219-thinking"
-        ;;
-    3)
-        claude_model="claude-opus-4-20250514"
-        ;;
-    4)
-        claude_model="claude-opus-4-20250514-thinking"
-        ;;
-    5)
-        claude_model="claude-sonnet-4-20250514-thinking"
-        ;;
-    6)
-        echo "Please enter custom model name/请输入自定义模型名称:"
-        read -p "Custom model name/自定义模型名称: " claude_model
-        if [ -z "$claude_model" ]; then
+    case "$model_choice" in
+        1)
+            claude_model="claude-3-7-sonnet-20250219"
+            ;;
+        2)
+            claude_model="claude-3-7-sonnet-20250219-thinking"
+            ;;
+        3)
+            claude_model="claude-opus-4-20250514"
+            ;;
+        4)
+            claude_model="claude-opus-4-20250514-thinking"
+            ;;
+        5)
+            claude_model="claude-sonnet-4-20250514-thinking"
+            ;;
+        6)
+            echo "Please enter custom model name/请输入自定义模型名称:"
+            read -p "Custom model name/自定义模型名称: " claude_model
+            if [ -z "$claude_model" ]; then
+                claude_model="claude-sonnet-4-20250514"
+            fi
+            ;;
+        *)
             claude_model="claude-sonnet-4-20250514"
-        fi
-        ;;
-    *)
-        claude_model="claude-sonnet-4-20250514"
-        ;;
-esac
+            ;;
+    esac
+fi
 
 echo "Selected model/已选择模型: $claude_model"
 
-# Prompt user for max output tokens
-echo ""
-echo "📊 Please set max output tokens/请设置最大输出令牌数 (Default: 64000/默认: 64000):"
-echo "   1. Use default (64000)/使用默认值 (64000)"
-echo "   2. Custom value/自定义值"
-echo ""
-read -p "Enter your choice (1-2) or press Enter for default/输入您的选择 (1-2) 或按回车使用默认值: " token_choice
+# Check if MAX_TOKENS is provided via environment variable
+if [ -n "$MAX_TOKENS" ]; then
+    echo "✅ Max tokens detected from environment variable: $MAX_TOKENS/检测到环境变量中的最大令牌数: $MAX_TOKENS"
+    max_tokens="$MAX_TOKENS"
+else
+    # Prompt user for max output tokens
+    echo ""
+    echo "📊 Please set max output tokens/请设置最大输出令牌数 (Default: 64000/默认: 64000):"
+    echo "   1. Use default (64000)/使用默认值 (64000)"
+    echo "   2. Custom value/自定义值"
+    echo ""
+    read -p "Enter your choice (1-2) or press Enter for default/输入您的选择 (1-2) 或按回车使用默认值: " token_choice
 
-case "$token_choice" in
-    2)
-        echo "Please enter custom max output tokens/请输入自定义最大输出令牌数:"
-        read -p "Max output tokens/最大输出令牌数: " max_tokens
-        if [ -z "$max_tokens" ]; then
+    case "$token_choice" in
+        2)
+            echo "Please enter custom max output tokens/请输入自定义最大输出令牌数:"
+            read -p "Max output tokens/最大输出令牌数: " max_tokens
+            if [ -z "$max_tokens" ]; then
+                max_tokens="64000"
+            fi
+            ;;
+        *)
             max_tokens="64000"
-        fi
-        ;;
-    *)
-        max_tokens="64000"
-        ;;
-esac
+            ;;
+    esac
+fi
 
 echo "Max output tokens set to/最大输出令牌数设置为: $max_tokens"
 

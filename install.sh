@@ -1,3 +1,26 @@
+#  Xcode Command Line Tools
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    echo "🛠 检查 Xcode Command Line Tools 是否已安装..."
+    # 检查 command line tools 是否存在
+    if ! xcode-select -p &>/dev/null; then
+        echo "❗️未检测到 Xcode Command Line Tools，正在为您自动安装..."
+        echo "   (会弹出安装窗口，请按照提示操作，安装完成后按回车继续)"
+        xcode-select --install
+
+        # 等待用户安装完成
+        read -p "✅ 安装完成后请按回车继续... (Press Enter after the installation is finished)" 
+        # 再次检测
+        if ! xcode-select -p &>/dev/null; then
+            echo "❌ Command Line Tools 仍未安装，无法继续。请安装后重新运行本脚本。"
+            exit 1
+        fi
+        echo "✅ Command Line Tools 已安装，继续下一步..."
+    else
+        echo "✅ Xcode Command Line Tools 已安装"
+    fi
+fi
+
+
 #!/bin/bash
 
 set -e

@@ -333,6 +333,9 @@ if ! [[ "$max_tokens" =~ ^[0-9]+$ ]] || [ "$max_tokens" -le 0 ] || [ "$max_token
     max_tokens="64000"
 fi
 
+# Convert to integer
+max_tokens=$(printf "%d" "$max_tokens")
+
 echo "Max output tokens set to/最大输出令牌数设置为: $max_tokens"
 
 # Detect current shell and determine rc file

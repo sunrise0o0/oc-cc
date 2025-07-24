@@ -321,7 +321,7 @@ echo ""
 echo "📝 Adding environment variables to $rc_file.../正在向$rc_file添加环境变量..."
 
 # Check if variables already exist to avoid duplicates
-if [ -f "$rc_file" ] && grep -q "ANTHROPIC_BASE_URL\|ANTHROPIC_API_KEY\|CLAUDE_MODEL\|CLAUDE_CODE_MAX_OUTPUT_TOKENS" "$rc_file"; then
+if [ -f "$rc_file" ] && grep -q "ANTHROPIC_BASE_URL\|ANTHROPIC_API_KEY\|CLAUDE_MODEL" "$rc_file"; then
     echo "⚠️ Environment variables already exist in $rc_file. Skipping.../环境变量已存在于 $rc_file 中。跳过..."
 else
     # Append new entries
@@ -330,7 +330,6 @@ else
     echo "export ANTHROPIC_BASE_URL=https://api.o3.fan" >> "$rc_file"
     echo "export ANTHROPIC_API_KEY=$api_key" >> "$rc_file"
     echo "export CLAUDE_MODEL=$claude_model" >> "$rc_file"
-    echo "export CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000" >> "$rc_file"  # 默认值
     echo "✅ Environment variables added to $rc_file/✅ 环境变量已添加到 $rc_file"
 fi
 
@@ -349,4 +348,3 @@ echo ""
 echo "📋 Configuration Summary/配置摘要:"
 echo "   API Base URL/API 基础地址: https://api.o3.fan"
 echo "   Model/模型: $claude_model"
-echo "   Max Output Tokens/最大输出令牌数: 64000"  # 默认值

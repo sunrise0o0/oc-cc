@@ -206,7 +206,13 @@ else
         echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.zshrc
         
         # Reload shell configuration
-        source ~/.bashrc 2>/dev/null || source ~/.zshrc 2>/dev/null || true
+        if [ -f "$HOME/.bashrc" ]; then
+            source ~/.bashrc 2>/dev/null || true
+        fi
+
+        if [ -f "$HOME/.zshrc" ]; then
+            source ~/.zshrc 2>/dev/null || true
+        fi
         
         # Update current session PATH
         export PATH=~/.npm-global/bin:$PATH

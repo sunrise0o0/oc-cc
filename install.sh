@@ -140,22 +140,7 @@ install_nodejs() {
                     if [ $retry_count -eq $max_retries ]; then
                         echo "❌ Node.js installation failed after $max_retries attempts."
                         echo "❌ Node.js 安装在 $max_retries 次尝试后失败。"
-                        
-                        # 如果有已安装的 Node.js 版本，尝试使用
-                        echo "🔍 Checking for existing Node.js versions..."
-                        echo "🔍 检查现有的 Node.js 版本..."
-                        
-                        if nvm list | grep -q "v22"; then
-                            echo "✅ Found existing Node.js v22, using it..."
-                            echo "✅ 找到现有的 Node.js v22，使用它..."
-                            nvm use 22
-                            nvm alias default 22
-                            break
-                        else
-                            echo "❌ No suitable Node.js version found."
-                            echo "❌ 未找到合适的 Node.js 版本。"
-                            exit 1
-                        fi
+                        exit 1
                     fi
                     
                     sleep 5
@@ -339,6 +324,13 @@ else
             max_tokens="64000"
             ;;
     esac
+fi
+
+# Validate the max_tokens value
+if ! [[ "$max_tokens" =~ ^[0-9]+$ ]] || [ "$max_tokens" -le 0 ] || [ "$max_tokens" -gt 64000 ]; then
+    echo "⚠️ Invalid value for max tokens. Setting to default (64000)."
+    echo "⚠️ 最大输出令牌数值无效。设置为默认值 (64000)。"
+    max_tokens="64000"
 fi
 
 echo "Max output tokens set to/最大输出令牌数设置为: $max_tokens"
